@@ -8,8 +8,9 @@ import joblib
 
 parser = argparse.ArgumentParser(description='Extract the ILSVRC2012 val dataset')
 parser.add_argument('--in_file', default='val224_compressed.pkl', help='input file path')
-parser.add_argument('--out_root', default='/data/public_dataset/pytorch/imagenet-data/', help='output file path')
+parser.add_argument('--out_root', default='~/data/public_dataset/pytorch/imagenet-data/', help='output file path')
 args = parser.parse_args()
+args.out_root = misc.expand_user(args.out_root)
 
 d = misc.load_pickle(args.in_file)
 assert len(d['data']) == 50000, len(d['data'])
