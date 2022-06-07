@@ -1,5 +1,6 @@
 import hashlib
 from pathlib import Path
+import pprint
 
 from collections import OrderedDict
 import argparse
@@ -101,6 +102,10 @@ def main():
                 v_quant = quant.tanh_quantize(v, bits=bits)
             state_dict_quant[k] = v_quant
             print(k, bits)
+            print("comparison:")
+            print(torch.max(v))
+            print(torch.max(v_quant))
+            print()
         model_raw.load_state_dict(state_dict_quant)
 
     # quantize forward activation
@@ -121,23 +126,35 @@ def main():
 
     # print sf
     print(model_raw)
-    res_str = "type={}, quant_method={}, param_bits={}, bn_bits={}, fwd_bits={}, overflow_rate={}, acc1={:.4f}, acc5={:.4f}".format(
-        args.type, args.quant_method, args.param_bits, args.bn_bits, args.fwd_bits, args.overflow_rate, acc1, acc5)
+    res_dict = {
+        'type': args.type,
+        'quant_method': args.quant_method,
+        'param_bits': args.param_bits,
+        'bn_bits': args.bn_bits,
+        'fwd_bits': args.fwd_bits,
+        'overflow_rate': args.overflow_rate,
+        'acc1': f'{acc1:.4f}',
+        'acc5': f'{acc5:.4f}'
+    }
+
+    res_str = str(res_dict)
     print(res_str)
 
     # Save modified, quantized model
-    quantized_model_name = f'{args.type}-quantized-{create_filename_hash_suffix(res_str)}'
+    quantized_model_name = f'{args.type}-quantized-{create_filename_hash_suffix(res_str)}.pth'
     quantized_model_path = Path(args.model_root, quantized_model_name)
     if args.save_quantized_model:
         torch.save(
             {
                 'model_state_dict': model_raw.state_dict(),
-                'res_str': res_str
+                'res_str': res_str,
+                'res_dict': res_dict
             },
             quantized_model_path)
 
     with open('acc1_acc5.txt', 'a') as f:
-        f.write(f'{res_str}, {str(quantized_model_path) if args.save_quantized_model else "not saved"}\n')
+        f.write(
+            f'{res_str}, {str(quantized_model_path) if args.save_quantized_model else "not saved"}\n')
 
 
 if __name__ == '__main__':
